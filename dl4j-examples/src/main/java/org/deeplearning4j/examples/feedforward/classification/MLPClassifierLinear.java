@@ -41,7 +41,7 @@ public class MLPClassifierLinear {
         int seed = 123;
         double learningRate = 0.01;
         int batchSize = 50;
-        int nEpochs = 300;
+        int nEpochs = 10;
 
         int numInputs = 624;
         int numOutputs = 2;
@@ -87,21 +87,39 @@ public class MLPClassifierLinear {
         for ( int n = 0; n < nEpochs; n++) {
             model.fit( trainIter );
         }
+        
+        System.out.println("Evaluate training model....");
+        Evaluation trainEval = new Evaluation(numOutputs);
+        
+        rr.initialize(new FileSplit(new File(filenameTrain)));
+        DataSetIterator trainIter0 = new RecordReaderDataSetIterator(rr,batchSize,0,2);
+        
+        while(trainIter0.hasNext()){
+            DataSet t = trainIter0.next();
+            INDArray features = t.getFeatureMatrix();
+            INDArray lables = t.getLabels();
+            INDArray predicted = model.output(features,false);
+
+            trainEval.eval(lables, predicted);
+
+        }
+        //Print the evaluation statistics
+        System.out.println(trainEval.stats());
 
         System.out.println("Evaluate model....");
-        Evaluation eval = new Evaluation(numOutputs);
+        Evaluation testEval = new Evaluation(numOutputs);
         while(testIter.hasNext()){
             DataSet t = testIter.next();
             INDArray features = t.getFeatureMatrix();
             INDArray lables = t.getLabels();
             INDArray predicted = model.output(features,false);
 
-            eval.eval(lables, predicted);
+            testEval.eval(lables, predicted);
 
         }
 
         //Print the evaluation statistics
-        System.out.println(eval.stats());
+        System.out.println(testEval.stats());
 
 
         //------------------------------------------------------------------------------------
