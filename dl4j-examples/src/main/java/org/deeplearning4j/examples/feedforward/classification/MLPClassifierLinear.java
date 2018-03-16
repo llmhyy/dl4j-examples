@@ -40,15 +40,15 @@ public class MLPClassifierLinear {
     public static void main(String[] args) throws Exception {
         int seed = 123;
         double learningRate = 0.01;
-        int batchSize = 80;
-        int nEpochs = 30;
+        int batchSize = 50;
+        int nEpochs = 10;
 
-        int numInputs = 2;
+        int numInputs = 624;
         int numOutputs = 2;
         int numHiddenNodes = 20;
 
-        final String filenameTrain  = new ClassPathResource("/classification/linear_data_train.csv").getFile().getPath();
-        final String filenameTest  = new ClassPathResource("/classification/linear_data_eval.csv").getFile().getPath();
+        final String filenameTrain  = new ClassPathResource("/classification/control.csv").getFile().getPath();
+        final String filenameTest  = new ClassPathResource("/classification/control2.csv").getFile().getPath();
 
         //Load the training data:
         RecordReader rr = new CSVRecordReader();
@@ -72,14 +72,6 @@ public class MLPClassifierLinear {
                         .weightInit(WeightInit.XAVIER)
                         .activation(Activation.RELU)
                         .build())
-//                .layer(1, new DenseLayer.Builder().nIn(numHiddenNodes).nOut(numHiddenNodes)
-//                        .weightInit(WeightInit.XAVIER)
-//                        .activation(Activation.RELU)
-//                        .build())
-//                .layer(2, new DenseLayer.Builder().nIn(numHiddenNodes).nOut(numHiddenNodes)
-//                        .weightInit(WeightInit.XAVIER)
-//                        .activation(Activation.RELU)
-//                        .build())
                 .layer(1, new OutputLayer.Builder(LossFunction.NEGATIVELOGLIKELIHOOD)
                         .weightInit(WeightInit.XAVIER)
                         .activation(Activation.SOFTMAX).weightInit(WeightInit.XAVIER)
@@ -95,69 +87,87 @@ public class MLPClassifierLinear {
         for ( int n = 0; n < nEpochs; n++) {
             model.fit( trainIter );
         }
-        INDArray predicted=null;
+
+        System.out.println("Evaluate training model....");
+        Evaluation trainEval = new Evaluation(numOutputs);
+
+        rr.initialize(new FileSplit(new File(filenameTrain)));
+        DataSetIterator trainIter0 = new RecordReaderDataSetIterator(rr,batchSize,0,2);
+
+        while(trainIter0.hasNext()){
+            DataSet t = trainIter0.next();
+            INDArray features = t.getFeatureMatrix();
+            INDArray lables = t.getLabels();
+            INDArray predicted = model.output(features,false);
+
+            trainEval.eval(lables, predicted);
+
+        }
+        //Print the evaluation statistics
+        System.out.println(trainEval.stats());
+
         System.out.println("Evaluate model....");
-        Evaluation eval = new Evaluation(numOutputs);
+        Evaluation testEval = new Evaluation(numOutputs);
         while(testIter.hasNext()){
             DataSet t = testIter.next();
             INDArray features = t.getFeatureMatrix();
             INDArray lables = t.getLabels();
-            predicted = model.output(features,false);
+            INDArray predicted = model.output(features,false);
 
-            eval.eval(lables, predicted);
+            testEval.eval(lables, predicted);
 
         }
-        System.out.println(predicted);
+
         //Print the evaluation statistics
-        System.out.println(eval.stats());
+        System.out.println(testEval.stats());
 
 
         //------------------------------------------------------------------------------------
         //Training is complete. Code that follows is for plotting the data & predictions only
 
-        //Plot the data:
-        double xMin = -37.5;
-        double xMax = 37.5;
-        double yMin = -12.5;
-        double yMax = 12.5;
-
-        //Let's evaluate the predictions at every point in the x/y input space
-        int nPointsPerAxis = 100;
-        double[][] evalPoints = new double[nPointsPerAxis*nPointsPerAxis][2];
-        int count = 0;
-        for( int i=0; i<nPointsPerAxis; i++ ){
-            for( int j=0; j<nPointsPerAxis; j++ ){
-                double x = i * (xMax-xMin)/(nPointsPerAxis-1) + xMin;
-                double y = j * (yMax-yMin)/(nPointsPerAxis-1) + yMin;
-
-                evalPoints[count][0] = x;
-                evalPoints[count][1] = y;
-
-                count++;
-            }
-        }
-
-        INDArray allXYPoints = Nd4j.create(evalPoints);
-        INDArray predictionsAtXYPoints = model.output(allXYPoints);
-
-        //Get all of the training data in a single array, and plot it:
-        rr.initialize(new FileSplit(new ClassPathResource("/classification/linear_data_train.csv").getFile()));
-        rr.reset();
-        int nTrainPoints = 1000;
-        trainIter = new RecordReaderDataSetIterator(rr,nTrainPoints,0,2);
-        DataSet ds = trainIter.next();
-        PlotUtil.plotTrainingData(ds.getFeatures(), ds.getLabels(), allXYPoints, predictionsAtXYPoints, nPointsPerAxis);
-
-
-        //Get test data, run the test data through the network to generate predictions, and plot those predictions:
-        rrTest.initialize(new FileSplit(new ClassPathResource("/classification/linear_data_eval.csv").getFile()));
-        rrTest.reset();
-        int nTestPoints = 500;
-        testIter = new RecordReaderDataSetIterator(rrTest,nTestPoints,0,2);
-        ds = testIter.next();
-        INDArray testPredicted = model.output(ds.getFeatures());
-        PlotUtil.plotTestData(ds.getFeatures(), ds.getLabels(), testPredicted, allXYPoints, predictionsAtXYPoints, nPointsPerAxis);
-
-        System.out.println("****************Example finished********************");
+//        //Plot the data:
+//        double xMin = -12.5;
+//        double xMax = 12.5;
+//        double yMin = -12.5;
+//        double yMax = 12.5;
+//
+//        //Let's evaluate the predictions at every point in the x/y input space
+//        int nPointsPerAxis = 100;
+//        double[][] evalPoints = new double[nPointsPerAxis*nPointsPerAxis][2];
+//        int count = 0;
+//        for( int i=0; i<nPointsPerAxis; i++ ){
+//            for( int j=0; j<nPointsPerAxis; j++ ){
+//                double x = i * (xMax-xMin)/(nPointsPerAxis-1) + xMin;
+//                double y = j * (yMax-yMin)/(nPointsPerAxis-1) + yMin;
+//
+//                evalPoints[count][0] = x;
+//                evalPoints[count][1] = y;
+//
+//                count++;
+//            }
+//        }
+//
+//        INDArray allXYPoints = Nd4j.create(evalPoints);
+//        INDArray predictionsAtXYPoints = model.output(allXYPoints);
+//
+//        //Get all of the training data in a single array, and plot it:
+//        rr.initialize(new FileSplit(new ClassPathResource("/classification/train.csv").getFile()));
+//        rr.reset();
+//        int nTrainPoints = 1000;
+//        trainIter = new RecordReaderDataSetIterator(rr,nTrainPoints,0,2);
+//        DataSet ds = trainIter.next();
+//        PlotUtil.plotTrainingData(ds.getFeatures(), ds.getLabels(), allXYPoints, predictionsAtXYPoints, nPointsPerAxis);
+//
+//
+//        //Get test data, run the test data through the network to generate predictions, and plot those predictions:
+//        rrTest.initialize(new FileSplit(new ClassPathResource("/classification/test.csv").getFile()));
+//        rrTest.reset();
+//        int nTestPoints = 500;
+//        testIter = new RecordReaderDataSetIterator(rrTest,nTestPoints,0,2);
+//        ds = testIter.next();
+//        INDArray testPredicted = model.output(ds.getFeatures());
+//        PlotUtil.plotTestData(ds.getFeatures(), ds.getLabels(), testPredicted, allXYPoints, predictionsAtXYPoints, nPointsPerAxis);
+//
+//        System.out.println("****************Example finished********************");
     }
 }
