@@ -1,5 +1,7 @@
 package org.deeplearning4j.examples.feedforward.classification;
 
+import java.io.File;
+
 import org.datavec.api.records.reader.RecordReader;
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
 import org.datavec.api.split.FileSplit;
@@ -15,14 +17,13 @@ import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
-
-import java.io.File;
 
 /**
  * "Linear" Data Classification Example
@@ -45,7 +46,7 @@ public class MLPClassifierLinear {
 
         int numInputs = 2;
         int numOutputs = 2;
-        int numHiddenNodes = 20;
+        int numHiddenNodes = 2;
 
         final String filenameTrain  = new ClassPathResource("/classification/linear_data_train.csv").getFile().getPath();
         final String filenameTest  = new ClassPathResource("/classification/linear_data_eval.csv").getFile().getPath();
@@ -83,11 +84,15 @@ public class MLPClassifierLinear {
         model.init();
         model.setListeners(new ScoreIterationListener(10));  //Print score every 10 parameter updates
 
-
         for ( int n = 0; n < nEpochs; n++) {
             model.fit( trainIter );
         }
-
+        
+        File modelFile = new File("E:\\model.zip");
+//        ModelSerializer.restoreMultiLayerNetwork(modelFile);
+        ModelSerializer.writeModel(model, modelFile, true);
+        MultiLayerNetwork restored = ModelSerializer.restoreMultiLayerNetwork(modelFile);
+        
         System.out.println("Evaluate model....");
         Evaluation eval = new Evaluation(numOutputs);
         while(testIter.hasNext()){
