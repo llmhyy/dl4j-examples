@@ -144,6 +144,11 @@
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.deeplearning4j.examples</groupId>
+            <artifactId>lstm-hdfs</artifactId>
+            <version>0.9.1</version>
+        </dependency>
 
     </dependencies>
 
