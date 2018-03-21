@@ -2,36 +2,27 @@ package org.deeplearning4j.examples.feedforward.classification;
 
     import java.io.File;
 
-    import org.datavec.api.records.reader.RecordReader;
-    import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
-    import org.datavec.api.split.FileSplit;
-    import org.datavec.api.util.ClassPathResource;
-    import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
-    import org.deeplearning4j.datasets.datavec.RecordReaderMultiDataSetIterator;
-    import org.deeplearning4j.eval.Evaluation;
-    import org.deeplearning4j.nn.api.OptimizationAlgorithm;
-    import org.deeplearning4j.nn.conf.ComputationGraphConfiguration;
-    import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
-    import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-    import org.deeplearning4j.nn.conf.Updater;
-    import org.deeplearning4j.nn.conf.graph.MergeVertex;
-    import org.deeplearning4j.nn.conf.layers.DenseLayer;
-    import org.deeplearning4j.nn.conf.layers.GravesLSTM;
-    import org.deeplearning4j.nn.conf.layers.OutputLayer;
-    import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
-    import org.deeplearning4j.nn.graph.ComputationGraph;
-    import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-    import org.deeplearning4j.nn.weights.WeightInit;
-    import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
-    import org.deeplearning4j.util.ModelSerializer;
-    import org.nd4j.linalg.activations.Activation;
-    import org.nd4j.linalg.api.ndarray.INDArray;
-    import org.nd4j.linalg.dataset.DataSet;
-    import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
-    import org.nd4j.linalg.dataset.api.iterator.MultiDataSetIterator;
-    import org.nd4j.linalg.factory.Nd4j;
-    import org.nd4j.linalg.lossfunctions.LossFunctions;
-    import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
+import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
+import org.datavec.api.split.FileSplit;
+import org.datavec.api.util.ClassPathResource;
+import org.deeplearning4j.datasets.datavec.RecordReaderMultiDataSetIterator;
+import org.deeplearning4j.eval.Evaluation;
+import org.deeplearning4j.nn.api.OptimizationAlgorithm;
+import org.deeplearning4j.nn.conf.ComputationGraphConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.Updater;
+import org.deeplearning4j.nn.conf.graph.MergeVertex;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.api.MultiDataSet;
+import org.nd4j.linalg.dataset.api.iterator.MultiDataSetIterator;
+import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 
 /**
  * "Linear" Data Classification Example
@@ -50,72 +41,136 @@ public class Research {
         int seed = 123;
         double learningRate = 0.01;
         int batchSize = 50;
-        int nEpochs = 10;
+        int nEpochs = 100;
 
         int numInputs = 2;
         int numOutputs = 2;
         int numHiddenNodes = 20;
 
-        final String filenameTrain  = new ClassPathResource("/classification/control.csv").getFile().getPath();
-        final String filenameTest  = new ClassPathResource("/classification/control2.csv").getFile().getPath();
+        final String filenameTrain  = new ClassPathResource("/data/train.csv").getFile().getPath();
+        final String filenameTest  = new ClassPathResource("/data/test.csv").getFile().getPath();
 
         //Load the training data:
         RecordReader rr = new CSVRecordReader();
-//        rr.initialize(new FileSplit(new File("src/main/resources/classification/linear_data_train.csv")));
         rr.initialize(new FileSplit(new File(filenameTrain)));
-
         MultiDataSetIterator trainIter = new RecordReaderMultiDataSetIterator.Builder(batchSize)
-            .addReader("myReader",rr)
-            .addInput("myReader",1,2)  //Input: columns 0 to 2 inclusive
-            .addOutput("myReader",0,0) //Output: columns 3 to 4 inclusive
+            .addReader("a",rr)
+            .addInput("a",1,3)  //Input: columns 0 to 2 inclusive
+            .addInput("a", 4,5)
+            .addInput("a", 6,6)
+            .addInput("a", 7, 109)
+            .addInput("a", 110, 212)
+            .addInput("a", 213, 315)
+            .addInput("a", 316, 418)
+            .addInput("a", 419, 521)
+            .addInput("a", 522, 624)
+            .addOutput("a",0,0) //Output: columns 3 to 4 inclusive
             .build();
 
         //Load the test/evaluation data:
-        RecordReader rrTest = new CSVRecordReader();
-        rrTest.initialize(new FileSplit(new File(filenameTest)));
-        DataSetIterator testIter = new RecordReaderDataSetIterator(rrTest,batchSize,0,2);
+        RecordReader rr0 = new CSVRecordReader();
+        rr0.initialize(new FileSplit(new File(filenameTest)));
+        MultiDataSetIterator testIter = new RecordReaderMultiDataSetIterator.Builder(batchSize)
+            .addReader("myReader",rr0)
+            .addInput("myReader",1,3)  //Input: columns 0 to 2 inclusive
+            .addInput("myReader", 4,5)
+            .addInput("myReader", 6,6)
+            .addOutput("myReader",0,0) //Output: columns 3 to 4 inclusive
+            .build();
 
         ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
             .learningRate(learningRate)
+            .iterations(1)
+			.optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+			.updater(Updater.NESTEROVS)
             .graphBuilder()
-            .addInputs("input1") //can use any label for this
-            .addLayer("L1",new DenseLayer.Builder().nIn(2).nOut(2).build(), "input1")
-            .addLayer("L2",new DenseLayer.Builder().nIn(2).nOut(2).build(), "input1")
-            .addLayer("L3",new DenseLayer.Builder().nIn(2).nOut(1).build(), "input1")
-            .addLayer("L4",new DenseLayer.Builder().nIn(2).nOut(1).build(), "L1")
-            .addLayer("L5",new DenseLayer.Builder().nIn(2).nOut(1).build(), "L2")
-            .addLayer("L6",new DenseLayer.Builder().nIn(1).nOut(1).build(), "L3")
-            .addVertex("merge", new MergeVertex(), "L4", "L5","L6")
-            .addLayer("out",new OutputLayer.Builder().nIn(3).nOut(1).build(), "merge")
+            .addInputs("input1", "input2", "input3", "input4", "input5", "input6", "input7", "input8", "input9") //can use any label for this
+            .addLayer("L1", new DenseLayer.Builder().nIn(3).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input1")
+            .addLayer("L2", new DenseLayer.Builder().nIn(2).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input2")
+            .addLayer("L3", new DenseLayer.Builder().nIn(1).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input3")
+            .addLayer("L4", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input4")
+            .addLayer("L5", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input5")
+            .addLayer("L6", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input6")
+            .addLayer("L7", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input7")
+            .addLayer("L8", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input8")
+            .addLayer("L9", new DenseLayer.Builder().nIn(103).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.RELU).build(), "input9")
+            .addVertex("merge", new MergeVertex(), "L1", "L2","L3", "L4", "L5","L6", "L7", "L8","L9")
+            .addLayer("out",new OutputLayer.Builder(LossFunction.NEGATIVELOGLIKELIHOOD).nIn(9).nOut(1)
+            		.weightInit(WeightInit.XAVIER)
+					.activation(Activation.SOFTMAX).build(), "merge")
             .setOutputs("out")	//We need to specify the network outputs and their order
+            .pretrain(true)
+            .backprop(true)
             .build();
 
         ComputationGraph model = new ComputationGraph(conf);
         model.init();
+        
+        System.out.println("before training");
+        System.out.println(model.getLayer("L1").getParam("W"));
+        System.out.println(model.getLayer("L1").getParam("b"));
+        System.out.println(model.getLayer("out").getParam("W"));
+        System.out.println(model.getLayer("out").getParam("b"));
+        
         model.setListeners(new ScoreIterationListener(10));  //Print score every 10 parameter updates
 
         for ( int n = 0; n < nEpochs; n++) {
             model.fit( trainIter );
         }
-        File modelFile = new File("E:\\model.zip");
-//      ModelSerializer.restoreMultiLayerNetwork(modelFile);
-        ModelSerializer.writeModel(model, modelFile, true);
-        MultiLayerNetwork restored = ModelSerializer.restoreMultiLayerNetwork(modelFile);
 
+        System.out.println("after training");
+        System.out.println(model.getLayer("L1").getParam("W"));
+        System.out.println(model.getLayer("L1").getParam("b"));
+        System.out.println(model.getLayer("out").getParam("W"));
+        System.out.println(model.getLayer("out").getParam("b"));
+        
+        rr.initialize(new FileSplit(new File(filenameTrain)));
+        trainIter = new RecordReaderMultiDataSetIterator.Builder(batchSize)
+            .addReader("a",rr)
+            .addInput("a",1,3)  //Input: columns 0 to 2 inclusive
+            .addInput("a", 4,5)
+            .addInput("a", 6,6)
+            .addInput("a", 7, 109)
+            .addInput("a", 110, 212)
+            .addInput("a", 213, 315)
+            .addInput("a", 316, 418)
+            .addInput("a", 419, 521)
+            .addInput("a", 522, 624)
+            .addOutput("a",0,0) //Output: columns 3 to 4 inclusive
+            .build();
+        
         System.out.println("Evaluate model....");
-        Evaluation testEval = new Evaluation(numOutputs);
-        while(testIter.hasNext()){
-            DataSet t = testIter.next();
-            INDArray features = t.getFeatureMatrix();
-            INDArray lables = t.getLabels();
-//            INDArray predicted = model.output(features,false);
+        Evaluation trainEval = new Evaluation(numOutputs);
+        while(trainIter.hasNext()){
+            MultiDataSet t = trainIter.next();
+            INDArray[] features = t.getFeatures();
+            INDArray lables = t.getLabels(0);
+            INDArray[] predicted = model.output(features);
 //
-//            testEval.eval(lables, predicted);
+            trainEval.eval(lables, predicted[0]);
 
         }
 
         //Print the evaluation statistics
-        System.out.println(testEval.stats());
+        System.out.println(trainEval.stats());
 
 
         //------------------------------------------------------------------------------------
